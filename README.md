@@ -1,2 +1,2 @@
-# SimpleIK
-Unity Inverse Kinematics made easy
+# FastIK
+Unity Inverse Kinematics made easy (SimpleIK is the working title)
