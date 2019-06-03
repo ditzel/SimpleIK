@@ -189,6 +189,7 @@ namespace DitzelGames.FastIK
 
         void OnDrawGizmos()
         {
+#if UNITY_EDITOR
             var current = this.transform;
             for (int i = 0; i < ChainLength && current != null && current.parent != null; i++)
             {
@@ -199,7 +200,7 @@ namespace DitzelGames.FastIK
                 current = current.parent;
             }
         }
-
+#endif
 
     }
 }
