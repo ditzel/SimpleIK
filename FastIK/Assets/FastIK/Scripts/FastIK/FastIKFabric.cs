@@ -46,7 +46,7 @@ namespace DitzelGames.FastIK
         protected Vector3[] StartDirectionSucc;
         protected Quaternion[] StartRotationBone;
         protected Quaternion StartRotationTarget;
-        protected Quaternion StartRotationRoot;
+        protected Transform Root;
 
 
         // Start is called before the first frame update
@@ -64,32 +64,41 @@ namespace DitzelGames.FastIK
             StartDirectionSucc = new Vector3[ChainLength + 1];
             StartRotationBone = new Quaternion[ChainLength + 1];
 
+            //find root
+            Root = transform;
+            for (var i = 0; i <= ChainLength; i++)
+            {
+                if (Root == null)
+                    throw new UnityException("The chain value is longer than the ancestor chain!");
+                Root = Root.parent;
+            }
 
-            //init fields
+            //init target
             if (Target == null)
             {
                 Target = new GameObject(gameObject.name + " Target").transform;
-                Target.position = transform.position;
+                SetPositionRootSpace(Target, GetPositionRootSpace(transform));
             }
-            StartRotationTarget = Target.rotation;
-            CompleteLength = 0;
+            StartRotationTarget = GetRotationRootSpace(Target);
+
 
             //init data
             var current = transform;
+            CompleteLength = 0;
             for (var i = Bones.Length - 1; i >= 0; i--)
             {
                 Bones[i] = current;
-                StartRotationBone[i] = current.rotation;
+                StartRotationBone[i] = GetRotationRootSpace(current);
 
                 if (i == Bones.Length - 1)
                 {
                     //leaf
-                    StartDirectionSucc[i] = Target.position - current.position;
+                    StartDirectionSucc[i] = GetPositionRootSpace(Target) - GetPositionRootSpace(current);
                 }
                 else
                 {
                     //mid bone
-                    StartDirectionSucc[i] = Bones[i + 1].position - current.position;
+                    StartDirectionSucc[i] = GetPositionRootSpace(Bones[i + 1]) - GetPositionRootSpace(current);
                     BonesLength[i] = StartDirectionSucc[i].magnitude;
                     CompleteLength += BonesLength[i];
                 }
@@ -97,11 +106,7 @@ namespace DitzelGames.FastIK
                 current = current.parent;
             }
 
-            if (Bones[0] == null)
-                throw new UnityException("The chain value is longer than the ancestor chain!");
 
-            //Root Rotation
-            StartRotationRoot = (Bones[0].parent != null) ? Bones[0].parent.rotation : Quaternion.identity;
 
         }
 
@@ -127,16 +132,16 @@ namespace DitzelGames.FastIK
 
             //get position
             for (int i = 0; i < Bones.Length; i++)
-                Positions[i] = Bones[i].position;
+                Positions[i] = GetPositionRootSpace(Bones[i]);
 
-            var RootRot = (Bones[0].parent != null) ? Bones[0].parent.rotation : Quaternion.identity;
-            var RootRotDiff = RootRot * Quaternion.Inverse(StartRotationRoot);
+            var targetPosition = GetPositionRootSpace(Target);
+            var targetRotation = GetRotationRootSpace(Target);
 
             //1st is possible to reach?
-            if ((Target.position - Bones[0].position).sqrMagnitude >= CompleteLength * CompleteLength)
+            if ((targetPosition - GetPositionRootSpace(Bones[0])).sqrMagnitude >= CompleteLength * CompleteLength)
             {
                 //just strech it
-                var direction = (Target.position - Positions[0]).normalized;
+                var direction = (targetPosition - Positions[0]).normalized;
                 //set everything after root
                 for (int i = 1; i < Positions.Length; i++)
                     Positions[i] = Positions[i - 1] + direction * BonesLength[i - 1];
@@ -144,7 +149,7 @@ namespace DitzelGames.FastIK
             else
             {
                 for (int i = 0; i < Positions.Length - 1; i++)
-                    Positions[i + 1] = Vector3.Lerp(Positions[i + 1], Positions[i] + RootRotDiff * StartDirectionSucc[i], SnapBackStrength);
+                    Positions[i + 1] = Vector3.Lerp(Positions[i + 1], Positions[i] + StartDirectionSucc[i], SnapBackStrength);
 
                 for (int iteration = 0; iteration < Iterations; iteration++)
                 {
@@ -153,7 +158,7 @@ namespace DitzelGames.FastIK
                     for (int i = Positions.Length - 1; i > 0; i--)
                     {
                         if (i == Positions.Length - 1)
-                            Positions[i] = Target.position; //set it to target
+                            Positions[i] = targetPosition; //set it to target
                         else
                             Positions[i] = Positions[i + 1] + (Positions[i] - Positions[i + 1]).normalized * BonesLength[i]; //set in line on distance
                     }
@@ -163,7 +168,7 @@ namespace DitzelGames.FastIK
                         Positions[i] = Positions[i - 1] + (Positions[i] - Positions[i - 1]).normalized * BonesLength[i - 1];
 
                     //close enough?
-                    if ((Positions[Positions.Length - 1] - Target.position).sqrMagnitude < Delta * Delta)
+                    if ((Positions[Positions.Length - 1] - targetPosition).sqrMagnitude < Delta * Delta)
                         break;
                 }
             }
@@ -171,11 +176,11 @@ namespace DitzelGames.FastIK
             //move towards pole
             if (Pole != null)
             {
+                var polePosition = GetPositionRootSpace(Pole);
                 for (int i = 1; i < Positions.Length - 1; i++)
                 {
-
                     var plane = new Plane(Positions[i + 1] - Positions[i - 1], Positions[i - 1]);
-                    var projectedPole = plane.ClosestPointOnPlane(Pole.position);
+                    var projectedPole = plane.ClosestPointOnPlane(polePosition);
                     var projectedBone = plane.ClosestPointOnPlane(Positions[i]);
                     var angle = Vector3.SignedAngle(projectedBone - Positions[i - 1], projectedPole - Positions[i - 1], plane.normal);
                     Positions[i] = Quaternion.AngleAxis(angle, plane.normal) * (Positions[i] - Positions[i - 1]) + Positions[i - 1];
@@ -186,11 +191,44 @@ namespace DitzelGames.FastIK
             for (int i = 0; i < Positions.Length; i++)
             {
                 if (i == Positions.Length - 1)
-                    Bones[i].rotation = Target.rotation * Quaternion.Inverse(StartRotationTarget) * StartRotationBone[i] * RootRotDiff;
+                    SetRotationRootSpace(Bones[i], Quaternion.Inverse(targetRotation) * StartRotationTarget * Quaternion.Inverse(StartRotationBone[i]));
                 else
-                    Bones[i].rotation = Quaternion.FromToRotation(StartDirectionSucc[i], Positions[i + 1] - Positions[i]) * StartRotationBone[i] * RootRotDiff;
-                Bones[i].position = Positions[i];
+                    SetRotationRootSpace(Bones[i], Quaternion.FromToRotation(StartDirectionSucc[i], Positions[i + 1] - Positions[i]) * Quaternion.Inverse(StartRotationBone[i]));
+                SetPositionRootSpace(Bones[i], Positions[i]);
             }
+        }
+
+        private Vector3 GetPositionRootSpace(Transform current)
+        {
+            if (Root == null)
+                return current.position;
+            else
+                return Quaternion.Inverse(Root.rotation) * (current.position - Root.position);
+        }
+
+        private void SetPositionRootSpace(Transform current, Vector3 position)
+        {
+            if (Root == null)
+                current.position = position;
+            else
+                current.position = Root.rotation * position + Root.position;
+        }
+
+        private Quaternion GetRotationRootSpace(Transform current)
+        {
+            //inverse(after) * before => rot: before -> after
+            if (Root == null)
+                return current.rotation;
+            else
+                return Quaternion.Inverse(current.rotation) * Root.rotation;
+        }
+
+        private void SetRotationRootSpace(Transform current, Quaternion rotation)
+        {
+            if (Root == null)
+                current.rotation = rotation;
+            else
+                current.rotation = Root.rotation * rotation;
         }
 
         void OnDrawGizmos()
