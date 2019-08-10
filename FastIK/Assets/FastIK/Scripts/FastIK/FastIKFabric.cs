@@ -35,7 +35,7 @@ namespace DitzelGames.FastIK
         /// <summary>
         /// Strength of going back to the start position.
         /// </summary>
-        [Range(0,1)]
+        [Range(0, 1)]
         public float SnapBackStrength = 1f;
 
 
@@ -63,6 +63,7 @@ namespace DitzelGames.FastIK
             BonesLength = new float[ChainLength];
             StartDirectionSucc = new Vector3[ChainLength + 1];
             StartRotationBone = new Quaternion[ChainLength + 1];
+
 
             //init fields
             if (Target == null)
@@ -99,7 +100,9 @@ namespace DitzelGames.FastIK
             if (Bones[0] == null)
                 throw new UnityException("The chain value is longer than the ancestor chain!");
 
+            //Root Rotation
             StartRotationRoot = (Bones[0].parent != null) ? Bones[0].parent.rotation : Quaternion.identity;
+
         }
 
         // Update is called once per frame
@@ -118,6 +121,7 @@ namespace DitzelGames.FastIK
 
             //Fabric
 
+            //  root
             //  (bone0) (bonelen 0) (bone1) (bonelen 1) (bone2)...
             //   x--------------------x--------------------x---...
 
@@ -182,9 +186,9 @@ namespace DitzelGames.FastIK
             for (int i = 0; i < Positions.Length; i++)
             {
                 if (i == Positions.Length - 1)
-                    Bones[i].rotation = Target.rotation * Quaternion.Inverse(StartRotationTarget) * StartRotationBone[i];
+                    Bones[i].rotation = Target.rotation * Quaternion.Inverse(StartRotationTarget) * StartRotationBone[i] * RootRotDiff;
                 else
-                    Bones[i].rotation = Quaternion.FromToRotation(StartDirectionSucc[i], Positions[i + 1] - Positions[i]) * StartRotationBone[i];
+                    Bones[i].rotation = Quaternion.FromToRotation(StartDirectionSucc[i], Positions[i + 1] - Positions[i]) * StartRotationBone[i] * RootRotDiff;
                 Bones[i].position = Positions[i];
             }
         }
