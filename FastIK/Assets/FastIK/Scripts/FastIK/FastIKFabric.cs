@@ -231,8 +231,8 @@ namespace DitzelGames.FastIK
             Vector3 origin = Root.position;
             for (int i = 0; i < Positions.Length - 1; i++)
             {
-                Vector3 currentPoint = origin + (Vector3)(Root.worldToLocalMatrix * Positions[i]);
-                Vector3 nextPoint    = origin + (Vector3)(Root.worldToLocalMatrix * Positions[i + 1]);
+                Vector3 currentPoint = origin + (Vector3)(Root.localToWorldMatrix * Positions[i]);
+                Vector3 nextPoint    = origin + (Vector3)(Root.localToWorldMatrix * Positions[i + 1]);
 
                 float dist = Vector3.Distance(currentPoint, nextPoint);
                 float scale = dist * 0.1f;
