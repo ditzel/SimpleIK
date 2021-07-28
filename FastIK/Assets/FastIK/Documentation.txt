@@ -1,7 +1,7 @@
 ==========================
 Intro
 ==========================
-There are two components for IK. The first on is the "Fast IK Fabric". The secound one is the "Fast IK Look". These will affect your bones.
+There are two components for IK. The first on is the "Fast IK Fabric". The second one is the "Fast IK Look". These will affect your bones.
 
 ==========================
 Fast IK Fabric
@@ -15,20 +15,20 @@ Iterations (required): Iterations to find good IK angles. Everything > 1 should 
 Delta (required): At which recision the algorithm should stop. (runtime / quality tradeoff)
 SnapBackStrength (required): The force that is used to get back to the start position of the bones.
 
-During runtime you can move the target and the pole. You could also move the first bone of the chain. The other bones are imovable.
+During runtime you can move the target and the pole. You could also move the first bone of the chain. The other bones are immovable.
 
-==> Look at the demo scene of an example
+==> Look at the demo scene for an example
 
 ==========================
 Fast IK Look
 ==========================
-Add the component to the chain element for any bone in you rig.
+Add the component to the chain element for any bone in your rig.
 
 Target (required): The target that should be faced
 
 During runtime you can move the target.
 
-==> Look at the demo scene of an example
+==> Look at the demo scene for an example
 
 
 ==========================
