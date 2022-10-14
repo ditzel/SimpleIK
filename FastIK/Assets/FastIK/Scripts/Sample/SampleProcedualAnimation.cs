@@ -14,10 +14,10 @@ namespace DitzelGames.FastIK
         public void LateUpdate()
         {
             //move step & attraction
-            Step.Translate(Vector3.forward * Time.deltaTime * 0.7f);
+            Step.Translate(0.7f * Time.deltaTime * Vector3.forward);
             if (Step.position.z > 1f)
                 Step.position = Step.position + Vector3.forward * -2f;
-            Attraction.Translate(Vector3.forward * Time.deltaTime * 0.5f);
+            Attraction.Translate(0.5f * Time.deltaTime * Vector3.forward);
             if (Attraction.position.z > 1f)
                 Attraction.position = Attraction.position + Vector3.forward * -2f;
 
@@ -33,8 +33,7 @@ namespace DitzelGames.FastIK
 
             //hand and look
             var normDist = Mathf.Clamp((Vector3.Distance(LookTarget.position, Attraction.position) - 0.3f) / 1f, 0, 1);
-            HandTarget.rotation = Quaternion.Lerp(Quaternion.Euler(90, 0, 0), HandTarget.rotation, normDist);
-            HandTarget.position = Vector3.Lerp(Attraction.position, HandTarget.position, normDist);
+            HandTarget.SetPositionAndRotation(Vector3.Lerp(Attraction.position, HandTarget.position, normDist), Quaternion.Lerp(Quaternion.Euler(90, 0, 0), HandTarget.rotation, normDist));
             HandPole.position = Vector3.Lerp(HandTarget.position + Vector3.down * 2, HandTarget.position + Vector3.forward * 2f, normDist);
             LookTarget.position = Vector3.Lerp(Attraction.position, LookTarget.position, normDist);
 
